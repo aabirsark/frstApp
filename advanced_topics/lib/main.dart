@@ -68,25 +68,26 @@ class _SignUpFormState extends State<SignUpForm> {
   double _fromProgress = 0.0;
 
   void _updateFormProgress() {
-    var _progress = 0.0;
-
-    final _controllers = [
+    var progress = 0.0;
+    final controllers = [
       _firstNameTextController,
       _lastNameTextController,
-      _usernameTextController,
+      _usernameTextController
     ];
 
-    // ? for loop
-    for (final controller in _controllers) {
+    for (final controller in controllers) {
       if (controller.value.text.isNotEmpty) {
-        _progress += 1 / _controllers.length;
+        progress += 1 / controllers.length;
       }
     }
 
-    /// out of [for looop]
     setState(() {
-      _fromProgress = _progress;
+      _fromProgress = progress;
     });
+  }
+
+  void _showWelcomePage() {
+    Navigator.pushNamed(context, MyRoutes.welcomePageRoute);
   }
 
   @override
@@ -95,23 +96,114 @@ class _SignUpFormState extends State<SignUpForm> {
       onChanged: _updateFormProgress,
       child: Column(
         mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
           AnimatedProgressIndicator(value: _fromProgress),
+          Text(
+            "Sign Up Form",
+            style: Theme.of(context).textTheme.headline3,
+          ),
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: TextFormField(
+              controller: _firstNameTextController,
+              decoration: InputDecoration(hintText: "First name"),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: TextFormField(
+              controller: _lastNameTextController,
+              decoration: InputDecoration(hintText: "Last name"),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: TextFormField(
+              controller: _usernameTextController,
+              decoration: InputDecoration(hintText: "Username"),
+            ),
+          ),
+          TextButton(
+            onPressed: _fromProgress == 1 ? _showWelcomePage : null,
+            child: Text("Submit"),
+            style: ButtonStyle(
+              foregroundColor: MaterialStateProperty.resolveWith((states) =>
+                  states.contains(MaterialState.disabled)
+                      ? null
+                      : Colors.white),
+              backgroundColor: MaterialStateProperty.resolveWith((states) =>
+                  states.contains(MaterialState.disabled) ? null : Colors.blue),
+            ),
+          )
         ],
       ),
     );
   }
 }
 
-class AnimatedProgressIndicator extends StatelessWidget {
-  final value;
+class AnimatedProgressIndicator extends StatefulWidget {
+  final double value;
 
   const AnimatedProgressIndicator({Key key, this.value}) : super(key: key);
 
+  @override
+  _AnimatedProgressIndicatorState createState() =>
+      _AnimatedProgressIndicatorState();
+}
+
+class _AnimatedProgressIndicatorState extends State<AnimatedProgressIndicator>
+    with SingleTickerProviderStateMixin {
+  // ? animation variable
+  AnimationController _controller;
+  Animation<Color> _colorAnim;
+  Animation<double> _doubleAnimation;
+
+  // init state
+  @override
+  void initState() {
+    super.initState();
+
+    // ? Animation Controller
+    _controller = AnimationController(
+        vsync: this, duration: Duration(milliseconds: 10000));
+
+    // ? color tween squence
+    final colorTween = TweenSequence([
+      TweenSequenceItem(
+          tween: Tween(begin: Colors.red, end: Colors.orange), weight: 1),
+      TweenSequenceItem(
+          tween: Tween(begin: Colors.orange, end: Colors.yellow), weight: 1),
+      TweenSequenceItem(
+          tween: Tween(begin: Colors.yellow, end: Colors.green), weight: 1),
+    ]);
+
+    // ? initializing Value
+
+    _colorAnim = _controller.drive(colorTween);
+    _doubleAnimation = _controller.drive(CurveTween(curve: Curves.easeIn));
+  }
+
+  @override
+  void didUpdateWidget(oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    _controller.animateTo(widget.value);
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (BuildContext context, Widget child) {
+        return LinearProgressIndicator(
+          value: _doubleAnimation.value,
+          valueColor: _colorAnim,
+          backgroundColor: _colorAnim.value.withOpacity(0.3),
+        );
+      },
     );
   }
 }
+
+
